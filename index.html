@@ -1,0 +1,431 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+
+const SCREENS = {
+  LIVE_FEED: "live_feed",
+  LIVE_PLAYER: "live_player",
+  CARD_SHOW: "card_show",
+  PDP: "pdp",
+};
+
+const SEGMENTS = {
+  GROUP1: "group1",
+  GROUP2: "group2",
+};
+
+const productData = {
+  group1: {
+    flag: "베스트",
+    flagColor: "#FF6B35",
+    title: "[스토어 첫구매] VT 리들샷 유니버스 키트 (한정수량)",
+    originalPrice: "67,000",
+    discountRate: "63%",
+    livePrice: "24,900",
+    remaining: "12개 남음",
+    img: "🧴",
+    reviews: "리뷰 15",
+    rating: "5.0",
+  },
+  group2: {
+    flag: "판매 1위",
+    flagColor: "#FF2D55",
+    title: "이탈리아 벨루어 트레이닝 셋업 (핑크/네이비/베이지)",
+    originalPrice: "54,000",
+    discountRate: "92%",
+    livePrice: "19,900",
+    remaining: "3개 남음",
+    img: "👕",
+    reviews: "리뷰 15",
+    rating: "5.0",
+    orderCount: "127명 주문",
+  },
+};
+
+const chatMessages = [
+  { user: "하이🙌", time: "0:12" },
+  { user: "오늘도 왔어요~", time: "0:15" },
+  { user: "이거 재입고 됐나요?", time: "0:18" },
+  { user: "사이즈 추천해주세요!", time: "0:22" },
+  { user: "배송 얼마나 걸려요?", time: "0:25" },
+];
+
+export default function LiveNudgePrototype() {
+  const [screen, setScreen] = useState(SCREENS.LIVE_FEED);
+  const [segment, setSegment] = useState(SEGMENTS.GROUP1);
+  const [timer, setTimer] = useState(0);
+  const [cardVisible, setCardVisible] = useState(false);
+  const [cardProgress, setCardProgress] = useState(100);
+  const [dismissed, setDismissed] = useState(false);
+  const [dismissType, setDismissType] = useState(null);
+  const [showChats, setShowChats] = useState(0);
+  const [pipMode, setPipMode] = useState(false);
+  const timerRef = useRef(null);
+  const cardTimerRef = useRef(null);
+  const chatRef = useRef(null);
+
+  const resetState = useCallback(() => {
+    setScreen(SCREENS.LIVE_FEED);
+    setTimer(0);
+    setCardVisible(false);
+    setCardProgress(100);
+    setDismissed(false);
+    setDismissType(null);
+    setShowChats(0);
+    setPipMode(false);
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (cardTimerRef.current) clearInterval(cardTimerRef.current);
+  }, []);
+
+  const enterLive = useCallback(() => {
+    setScreen(SCREENS.LIVE_PLAYER);
+    setTimer(0);
+    setCardVisible(false);
+    setCardProgress(100);
+    setDismissed(false);
+    setDismissType(null);
+    setShowChats(0);
+    setPipMode(false);
+
+    timerRef.current = setInterval(() => {
+      setTimer((p) => {
+        const next = p + 1;
+        if (next <= 5) setShowChats(next);
+        return next;
+      });
+    }, 1000);
+  }, []);
+
+  useEffect(() => {
+    if (timer === 10 && !dismissed) {
+      setCardVisible(true);
+      setCardProgress(100);
+      let elapsed = 0;
+      cardTimerRef.current = setInterval(() => {
+        elapsed += 50;
+        const pct = Math.max(0, 100 - (elapsed / 10000) * 100);
+        setCardProgress(pct);
+        if (elapsed >= 10000) {
+          clearInterval(cardTimerRef.current);
+          setCardVisible(false);
+          setDismissed(true);
+          setDismissType("auto");
+        }
+      }, 50);
+    }
+    return () => {};
+  }, [timer, dismissed]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (cardTimerRef.current) clearInterval(cardTimerRef.current);
+    };
+  }, []);
+
+  const dismissCard = (type) => {
+    if (cardTimerRef.current) clearInterval(cardTimerRef.current);
+    setCardVisible(false);
+    setDismissed(true);
+    setDismissType(type);
+  };
+
+  const handleCTA = () => {
+    dismissCard("cta");
+    setPipMode(true);
+    setScreen(SCREENS.PDP);
+    if (timerRef.current) clearInterval(timerRef.current);
+  };
+
+  const product = productData[segment];
+
+  // Feed screen
+  if (screen === SCREENS.LIVE_FEED) {
+    return (
+      <div style={{ width: 375, height: 812, background: "#000", margin: "0 auto", position: "relative", overflow: "hidden", fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif", borderRadius: 20, border: "4px solid #333" }}>
+        {/* Status bar */}
+        <div style={{ height: 44, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", color: "#fff", fontSize: 12, fontWeight: 600 }}>
+          <span>9:41</span>
+          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            <span>📶</span><span>🔋</span>
+          </div>
+        </div>
+
+        {/* Segment Toggle */}
+        <div style={{ position: "absolute", top: 50, left: 0, right: 0, zIndex: 100, display: "flex", justifyContent: "center", gap: 8, padding: "0 16px" }}>
+          <button onClick={() => setSegment(SEGMENTS.GROUP1)} style={{ padding: "8px 16px", borderRadius: 20, border: "none", fontSize: 12, fontWeight: 600, cursor: "pointer", background: segment === SEGMENTS.GROUP1 ? "#fff" : "rgba(255,255,255,0.2)", color: segment === SEGMENTS.GROUP1 ? "#000" : "#fff" }}>
+            ① 10분 이내 진입
+          </button>
+          <button onClick={() => setSegment(SEGMENTS.GROUP2)} style={{ padding: "8px 16px", borderRadius: 20, border: "none", fontSize: 12, fontWeight: 600, cursor: "pointer", background: segment === SEGMENTS.GROUP2 ? "#fff" : "rgba(255,255,255,0.2)", color: segment === SEGMENTS.GROUP2 ? "#000" : "#fff" }}>
+            ② 10분 이후 진입
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div style={{ display: "flex", padding: "10px 16px 0", gap: 16 }}>
+          <span style={{ color: "#fff", fontWeight: 700, fontSize: 16, borderBottom: "2px solid #fff", paddingBottom: 8 }}>추천</span>
+          <span style={{ color: "rgba(255,255,255,0.5)", fontWeight: 500, fontSize: 16, paddingBottom: 8 }}>팔로잉</span>
+        </div>
+
+        {/* Feed cards */}
+        <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+          {/* Live card */}
+          <div onClick={enterLive} style={{ cursor: "pointer", borderRadius: 16, overflow: "hidden", background: "#1a1a1a", position: "relative" }}>
+            <div style={{ height: 220, background: "linear-gradient(135deg, #2a1a3e, #1a2a4e)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+              <div style={{ position: "absolute", top: 12, left: 12, display: "flex", gap: 6 }}>
+                <span style={{ background: "#FF2D55", color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 4 }}>LIVE</span>
+                <span style={{ background: "rgba(0,0,0,0.5)", color: "#fff", fontSize: 11, padding: "3px 8px", borderRadius: 4 }}>👤 1,247</span>
+              </div>
+              <div style={{ fontSize: 48 }}>🎥</div>
+              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "20px 12px 12px", background: "linear-gradient(transparent, rgba(0,0,0,0.8))" }}>
+                <div style={{ color: "#fff", fontSize: 14, fontWeight: 600 }}>금주7세 마감세일! 올라타느냐 마느냐!</div>
+                <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 4 }}>뱀뱀BEMBEM</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Second card */}
+          <div style={{ borderRadius: 16, overflow: "hidden", background: "#1a1a1a", height: 180, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+            <div style={{ position: "absolute", top: 12, left: 12, display: "flex", gap: 6 }}>
+              <span style={{ background: "#FF2D55", color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 4 }}>LIVE</span>
+              <span style={{ background: "rgba(0,0,0,0.5)", color: "#fff", fontSize: 11, padding: "3px 8px", borderRadius: 4 }}>👤 856</span>
+            </div>
+            <div style={{ background: "linear-gradient(135deg, #1a3a2e, #2a2a1e)", width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ fontSize: 40 }}>👗</span>
+            </div>
+            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "20px 12px 12px", background: "linear-gradient(transparent, rgba(0,0,0,0.8))" }}>
+              <div style={{ color: "#fff", fontSize: 14, fontWeight: 600 }}>봄 신상 원피스 특가전</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Instruction */}
+        <div style={{ position: "absolute", bottom: 40, left: 0, right: 0, textAlign: "center" }}>
+          <div style={{ background: "rgba(255,255,255,0.1)", display: "inline-block", padding: "10px 20px", borderRadius: 20, color: "rgba(255,255,255,0.7)", fontSize: 13 }}>
+            👆 라이브 카드를 탭하여 진입하세요
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // PDP screen
+  if (screen === SCREENS.PDP) {
+    return (
+      <div style={{ width: 375, height: 812, background: "#fff", margin: "0 auto", position: "relative", overflow: "hidden", fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif", borderRadius: 20, border: "4px solid #333" }}>
+        {/* PIP */}
+        {pipMode && (
+          <div onClick={() => { setPipMode(false); setScreen(SCREENS.LIVE_PLAYER); }} style={{ position: "absolute", top: 60, right: 12, width: 120, height: 170, borderRadius: 12, background: "linear-gradient(135deg, #2a1a3e, #1a2a4e)", zIndex: 100, cursor: "pointer", boxShadow: "0 4px 20px rgba(0,0,0,0.3)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: 6, left: 6 }}>
+              <span style={{ background: "#FF2D55", color: "#fff", fontSize: 8, fontWeight: 700, padding: "2px 5px", borderRadius: 3 }}>LIVE</span>
+            </div>
+            <span style={{ fontSize: 28 }}>🎥</span>
+          </div>
+        )}
+
+        {/* Status bar */}
+        <div style={{ height: 44, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", fontSize: 12, fontWeight: 600 }}>
+          <span>9:41</span>
+          <div style={{ display: "flex", gap: 4 }}>📶 🔋</div>
+        </div>
+
+        {/* Nav */}
+        <div style={{ display: "flex", alignItems: "center", padding: "8px 16px", borderBottom: "1px solid #eee" }}>
+          <button onClick={resetState} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer" }}>←</button>
+          <span style={{ flex: 1, textAlign: "center", fontWeight: 600, fontSize: 15 }}>상품 상세</span>
+          <span style={{ width: 20 }}></span>
+        </div>
+
+        {/* Product image */}
+        <div style={{ height: 375, background: "#f5f5f5", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <span style={{ fontSize: 80 }}>{product.img}</span>
+        </div>
+
+        {/* Product info */}
+        <div style={{ padding: 16 }}>
+          <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+            <span style={{ background: product.flagColor, color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 4 }}>{product.flag}</span>
+            {segment === SEGMENTS.GROUP2 && (
+              <span style={{ background: "#FF2D55", color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 4 }}>{product.orderCount}</span>
+            )}
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 500, lineHeight: 1.4, color: "#333", marginBottom: 12 }}>{product.title}</div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 4 }}>
+            <span style={{ color: "#FF2D55", fontSize: 22, fontWeight: 800 }}>{product.discountRate}</span>
+            <span style={{ fontSize: 22, fontWeight: 800 }}>{product.livePrice}원</span>
+          </div>
+          <div style={{ color: "#999", fontSize: 13, textDecoration: "line-through" }}>{product.originalPrice}원</div>
+          <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 4 }}>
+            <span style={{ color: "#FFB800", fontSize: 13 }}>★ {product.rating}</span>
+            <span style={{ color: "#999", fontSize: 12 }}>{product.reviews}</span>
+          </div>
+        </div>
+
+        {/* Bottom CTA */}
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "12px 16px 32px", background: "#fff", borderTop: "1px solid #eee", display: "flex", gap: 10 }}>
+          <button style={{ width: 52, height: 52, borderRadius: 12, border: "1px solid #ddd", background: "#fff", fontSize: 20, cursor: "pointer" }}>♡</button>
+          <button style={{ flex: 1, height: 52, borderRadius: 12, border: "none", background: "#FF2D55", color: "#fff", fontSize: 16, fontWeight: 700, cursor: "pointer" }}>구매하기</button>
+        </div>
+      </div>
+    );
+  }
+
+  // Live player
+  return (
+    <div style={{ width: 375, height: 812, background: "#000", margin: "0 auto", position: "relative", overflow: "hidden", fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif", borderRadius: 20, border: "4px solid #333" }}>
+      {/* Video bg */}
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, #2a1a3e 0%, #1a2a4e 50%, #2a1a3e 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ fontSize: 60, opacity: 0.3 }}>🎥</span>
+      </div>
+
+      {/* Status bar */}
+      <div style={{ position: "relative", zIndex: 10, height: 44, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", color: "#fff", fontSize: 12, fontWeight: 600 }}>
+        <span>9:41</span>
+        <div style={{ display: "flex", gap: 4, alignItems: "center" }}>📶 🔋</div>
+      </div>
+
+      {/* Top bar */}
+      <div style={{ position: "relative", zIndex: 10, display: "flex", alignItems: "center", padding: "4px 12px", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 18, background: "linear-gradient(135deg, #FF6B35, #FF2D55)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🏪</div>
+          <div>
+            <div style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>뱀뱀BEMBEM</div>
+            <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>👤 1,247명 시청</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <span style={{ color: "#fff", fontSize: 11, background: "rgba(255,255,255,0.15)", padding: "4px 10px", borderRadius: 12 }}>♡ 팔로우</span>
+          <button onClick={resetState} style={{ background: "none", border: "none", color: "#fff", fontSize: 20, cursor: "pointer" }}>✕</button>
+        </div>
+      </div>
+
+      {/* Timer display */}
+      <div style={{ position: "relative", zIndex: 10, padding: "8px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <span style={{ background: "#FF2D55", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 3 }}>LIVE</span>
+          <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 11 }}>
+            {segment === SEGMENTS.GROUP1 ? "방송 시작 7분 경과" : "방송 시작 25분 경과"}
+          </span>
+        </div>
+        <div style={{ background: "rgba(255,255,255,0.15)", padding: "4px 10px", borderRadius: 12, display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ color: cardVisible ? "#FF2D55" : "rgba(255,255,255,0.8)", fontSize: 11, fontWeight: 600 }}>
+            진입 {timer}초
+          </span>
+          {timer < 10 && !dismissed && (
+            <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 10 }}>| 카드 {10 - timer}초 후</span>
+          )}
+        </div>
+      </div>
+
+      {/* Chat messages */}
+      <div style={{ position: "absolute", bottom: 140, left: 12, right: 80, zIndex: 10 }}>
+        {chatMessages.slice(0, showChats).map((msg, i) => (
+          <div key={i} style={{ marginBottom: 6, display: "flex", gap: 6, alignItems: "center", animation: "fadeIn 0.3s ease" }}>
+            <div style={{ width: 24, height: 24, borderRadius: 12, background: `hsl(${i * 60}, 60%, 50%)`, fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>👤</div>
+            <div style={{ background: "rgba(0,0,0,0.4)", borderRadius: 12, padding: "6px 10px", color: "#fff", fontSize: 12 }}>{msg.user}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Bottom product card (always visible) */}
+      <div style={{ position: "absolute", bottom: 70, left: 12, right: 12, zIndex: 10 }}>
+        <div style={{ background: "rgba(0,0,0,0.6)", borderRadius: 12, padding: "10px 12px", display: "flex", alignItems: "center", gap: 10, backdropFilter: "blur(10px)" }}>
+          <div style={{ width: 48, height: 48, borderRadius: 8, background: "#f5f5f5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0 }}>
+            {product.img}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: "#fff", fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>31~54%할인! 트레이닝셋업 4종</div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginTop: 2 }}>
+              <span style={{ color: "#FF2D55", fontSize: 13, fontWeight: 700 }}>43%</span>
+              <span style={{ color: "#fff", fontSize: 13, fontWeight: 700 }}>453,000원</span>
+            </div>
+          </div>
+          <button style={{ background: "#FF2D55", border: "none", color: "#fff", padding: "8px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
+            바로 구매
+          </button>
+        </div>
+      </div>
+
+      {/* Bottom action bar */}
+      <div style={{ position: "absolute", bottom: 20, left: 0, right: 0, zIndex: 10, display: "flex", justifyContent: "space-around", padding: "0 16px" }}>
+        {["💬", "🛒", "📋", "🔗", "❤️"].map((icon, i) => (
+          <div key={i} style={{ width: 40, height: 40, borderRadius: 20, background: "rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{icon}</div>
+        ))}
+      </div>
+
+      {/* === NUDGE CARD OVERLAY === */}
+      {cardVisible && (
+        <div onClick={() => dismissCard("manual")} style={{ position: "absolute", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", animation: "fadeIn 0.25s ease" }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: 300, background: "#fff", borderRadius: 20, overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.5)", animation: "slideUp 0.3s ease" }}>
+            {/* Card header */}
+            <div style={{ padding: "18px 16px 0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                <span style={{ background: product.flagColor, color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 10 }}>
+                  {segment === SEGMENTS.GROUP1 ? "🔥 셀러 인기상품" : "🏆 실시간 판매 1위"}
+                </span>
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#222", lineHeight: 1.4 }}>
+                {segment === SEGMENTS.GROUP1 ? "셀러의 가장 인기 있는 상품이에요!" : "Live 중에 가장 잘팔리는 상품이에요!"}
+              </div>
+            </div>
+
+            {/* Product content */}
+            <div style={{ padding: "12px 16px" }}>
+              <div style={{ display: "flex", gap: 12 }}>
+                {/* Image */}
+                <div style={{ width: 100, height: 100, borderRadius: 12, background: "#f5f5f5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48, flexShrink: 0, position: "relative" }}>
+                  {product.img}
+                  <div style={{ position: "absolute", top: 4, left: 4 }}>
+                    <span style={{ background: product.flagColor, color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 5px", borderRadius: 3 }}>{product.flag}</span>
+                  </div>
+                </div>
+                {/* Info */}
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, color: "#333", lineHeight: 1.4, fontWeight: 500, marginBottom: 8, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                    {product.title}
+                  </div>
+                  <div style={{ color: "#999", fontSize: 12, textDecoration: "line-through", marginBottom: 2 }}>{product.originalPrice}원</div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                    <span style={{ color: "#FF2D55", fontSize: 18, fontWeight: 800 }}>{product.discountRate}</span>
+                    <span style={{ fontSize: 18, fontWeight: 800 }}>{product.livePrice}원</span>
+                  </div>
+                  <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "center" }}>
+                    <span style={{ color: "#FF6B35", fontSize: 11, fontWeight: 600 }}>{product.remaining}</span>
+                    {segment === SEGMENTS.GROUP2 && (
+                      <span style={{ color: "#999", fontSize: 11 }}>| {product.orderCount}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* CTA */}
+            <div style={{ padding: "0 16px 16px" }}>
+              <button onClick={handleCTA} style={{ width: "100%", height: 48, borderRadius: 12, border: "none", background: "#FF2D55", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                상품 보기 →
+              </button>
+            </div>
+
+            {/* Timer bar */}
+            <div style={{ height: 4, background: "#f0f0f0", position: "relative" }}>
+              <div style={{ height: "100%", background: "linear-gradient(90deg, #FF2D55, #FF6B35)", width: `${cardProgress}%`, transition: "width 0.05s linear", borderRadius: 2 }} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Event log */}
+      {dismissType && (
+        <div style={{ position: "absolute", top: 100, left: 12, right: 12, zIndex: 60, background: "rgba(0,200,100,0.9)", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 14 }}>✅</span>
+          <span style={{ color: "#fff", fontSize: 12, fontWeight: 500 }}>
+            이벤트: {dismissType === "auto" ? "card_dismiss_auto (10초 타이머 만료)" : dismissType === "manual" ? "card_dismiss_manual (수동 닫기)" : "card_cta_click (CTA 클릭 → PDP 이동)"}
+          </span>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+      `}</style>
+    </div>
+  );
+}
